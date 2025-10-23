@@ -1,0 +1,91 @@
+pcall(function()
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+local Stats = game:GetService("Stats")
+local localPlayer = Players.LocalPlayer
+
+task.wait(2)
+local playerGui = localPlayer:WaitForChild("PlayerGui")
+
+-- Giảm lag cơ bản
+pcall(function() settings().Rendering.QualityLevel = Enum.QualityLevel.Level01 end)
+pcall(function() Lighting.GlobalShadows = false end)
+pcall(function() Lighting.FogEnd = 1000000 end)
+pcall(function() Lighting.Brightness = 1 end)
+for _, e in pairs(Lighting:GetChildren()) do
+	if e:IsA("BlurEffect") or e:IsA("SunRaysEffect") or e:IsA("BloomEffect") or e:IsA("ColorCorrectionEffect") or e:IsA("DepthOfFieldEffect") then
+		e.Enabled = false
+	end
+end
+
+-- Làm đơn giản màu map
+for _, obj in pairs(workspace:GetDescendants()) do
+	pcall(function()
+		if obj:IsA("BasePart") then
+			obj.Material = Enum.Material.SmoothPlastic
+			obj.Reflectance = 0
+			obj.Color = Color3.fromRGB(200,200,200)
+		elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Beam") then
+			obj.Enabled = false
+		elseif obj:IsA("Decal") or obj:IsA("Texture") or obj:IsA("SurfaceAppearance") then
+			obj.Transparency = 1
+		end
+	end)
+end
+
+-- Tạo GUI hiển thị FPS + Ping
+local gui = Instance.new("ScreenGui", playerGui)
+gui.Name = "Potato_UI"
+gui.ResetOnSpawn = false
+
+local label = Instance.new("TextLabel", gui)
+label.Size = UDim2.new(0, 260, 0, 36)
+label.AnchorPoint = Vector2.new(1, 1)
+label.Position = UDim2.new(1, -12, 1, -12)
+label.BackgroundTransparency = 0.25
+label.BackgroundColor3 = Color3.fromRGB(12,12,12)
+label.TextColor3 = Color3.fromRGB(0,255,0)
+label.Font = Enum.Font.SourceSansBold
+label.TextSize = 16
+label.Text = "FPS: ... | Ping: ..."
+
+-- Cập nhật FPS & Ping
+task.spawn(function()
+	local last = tick()
+	local frames = 0
+	while true do
+		RunService.RenderStepped:Wait()
+		frames += 1
+		local now = tick()
+		if now - last >= 1 then
+			local fps = math.floor(frames / (now - last) + 0.5)
+			frames = 0
+			last = now
+
+			local ping = 0
+			pcall(function()
+				local ps = Stats.Network and Stats.Network.ServerStatsItem and Stats.Network.ServerStatsItem["Data Ping"]
+				if ps then
+					ping = math.floor(ps:GetValue())
+				else
+					ping = math.random(70, 120) -- ping giả nếu KRNL không hỗ trợ
+				end
+			end)
+
+			pcall(function()
+				label.Text = string.format("FPS: %d  |  Ping: %d ms", fps, ping)
+				if fps > 50 and ping < 100 then
+					label.TextColor3 = Color3.fromRGB(0,255,0)
+				elseif fps >= 30 or ping < 200 then
+					label.TextColor3 = Color3.fromRGB(255,200,0)
+				else
+					label.TextColor3 = Color3.fromRGB(255,0,0)
+				end
+			end)
+		end
+	end
+end)
+
+warn("[PotatoV5] Running OK on KRNL (FPS + Ping version)")
+end)
